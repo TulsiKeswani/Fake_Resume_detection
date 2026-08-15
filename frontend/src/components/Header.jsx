@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, Cpu, BarChart3, Award, Users, User, Zap, Sparkles } from 'lucide-react';
+import { ShieldAlert, Cpu, BarChart3, Award, FilePlus, UserCheck, Search, Users, User, Sparkles } from 'lucide-react';
 
 export default function Header({ activeTab, setActiveTab, activeRole, setActiveRole }) {
   return (
@@ -36,19 +36,58 @@ export default function Header({ activeTab, setActiveTab, activeRole, setActiveR
             VeriResume AI
           </h1>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Sparkles size={12} color="#06b6d4" /> Next-Gen AI Resume Verification & Proctoring Platform
+            <Sparkles size={12} color="#06b6d4" /> Next-Gen AI Verification & Hiring Assessment Suite
           </p>
         </div>
       </div>
 
-      {/* Main Navigation Tabs */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border-color)' }}>
+      {/* Main Navigation Tabs: Step 3 → Step 8 */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+        <button
+          className={activeTab === 'step3' ? 'btn-primary' : 'btn-secondary'}
+          onClick={() => {
+            setActiveTab('step3');
+            setActiveRole('company');
+          }}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+        >
+          <FilePlus size={14} />
+          Step 3: Job Creation
+        </button>
+
+        <button
+          className={activeTab === 'step4' ? 'btn-primary' : 'btn-secondary'}
+          onClick={() => {
+            setActiveTab('step4');
+            setActiveRole('candidate');
+          }}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+        >
+          <UserCheck size={14} />
+          Step 4: Apply Job
+        </button>
+
+        <button
+          className={activeTab === 'step5' ? 'btn-primary' : 'btn-secondary'}
+          onClick={() => {
+            setActiveTab('step5');
+            setActiveRole('company');
+          }}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+        >
+          <Search size={14} />
+          Step 5: AI Verification
+        </button>
+
         <button
           className={activeTab === 'step6' ? 'btn-primary' : 'btn-secondary'}
-          onClick={() => setActiveTab('step6')}
-          style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+          onClick={() => {
+            setActiveTab('step6');
+            setActiveRole('candidate');
+          }}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
         >
-          <Cpu size={16} />
+          <Cpu size={14} />
           Step 6: AI Interview
         </button>
 
@@ -58,9 +97,9 @@ export default function Header({ activeTab, setActiveTab, activeRole, setActiveR
             setActiveTab('step7');
             setActiveRole('company');
           }}
-          style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
         >
-          <BarChart3 size={16} />
+          <BarChart3 size={14} />
           Step 7: Evaluation Panel
         </button>
 
@@ -70,20 +109,22 @@ export default function Header({ activeTab, setActiveTab, activeRole, setActiveR
             setActiveTab('step8');
             setActiveRole('candidate');
           }}
-          style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
         >
-          <Award size={16} />
+          <Award size={14} />
           Step 8: Candidate Report
         </button>
       </nav>
 
-      {/* Role Switcher (Company vs Candidate) */}
+      {/* Role Switcher */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '10px', padding: '3px', border: '1px solid var(--border-color)' }}>
           <button
             onClick={() => {
               setActiveRole('company');
-              if (activeTab === 'step8') setActiveTab('step7');
+              if (activeTab === 'step8' || activeTab === 'step4' || activeTab === 'step6') {
+                setActiveTab('step7');
+              }
             }}
             style={{
               padding: '6px 12px',
@@ -105,7 +146,9 @@ export default function Header({ activeTab, setActiveTab, activeRole, setActiveR
           <button
             onClick={() => {
               setActiveRole('candidate');
-              if (activeTab === 'step7') setActiveTab('step8');
+              if (activeTab === 'step3' || activeTab === 'step5' || activeTab === 'step7') {
+                setActiveTab('step8');
+              }
             }}
             style={{
               padding: '6px 12px',

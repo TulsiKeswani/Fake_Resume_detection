@@ -1,20 +1,33 @@
-const express = require('express');
-const cors = require('cors');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-
-const jobsRoutes = require('./routes/jobs');
-const applicationsRoutes = require('./routes/applications');
-const aiRoutes = require('./routes/ai');
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS and JSON body parsing
-app.use(cors());
-app.use(express.json());
+// Security and Body Parsers
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve uploaded files statically if directory exists
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Load optional DB connection if configured
+try {
+  const connectDB = require('./config/db');
+  if (typeof connectDB === 'function') {
+    connectDB();
+  }
+} catch (e) {
+  console.log('Running in modular in-memory & route hybrid mode');
+}
 
 // In-Memory Database Store for MVP
 let jobsStore = [
@@ -68,21 +81,42 @@ let candidatesStore = [
   }
 ];
 
-// Requirement 3: GET / Health endpoint
+// Mount Routes safely if modules exist
+try {
+  app.use('/api/auth', require('./routes/authRoutes'));
+} catch (e) {}
+
+try {
+  app.use('/api/company', require('./routes/companyRoutes'));
+} catch (e) {}
+
+try {
+  app.use('/api/candidate', require('./routes/candidateRoutes'));
+} catch (e) {}
+
+try {
+  app.use('/api/applications', require('./routes/applications'));
+} catch (e) {}
+
+try {
+  app.use('/api/ai', require('./routes/ai'));
+} catch (e) {}
+
+// Health check endpoints
 app.get('/', (req, res) => {
-  res.json({ status: "ok", message: "Backend is running" });
+  res.json({ status: "ok", message: "Backend is running", system: "VeriResume & Intellify Engine" });
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: "ok", message: "Backend is running", timestamp: new Date() });
+  res.json({ status: "ok", message: "Backend is running", timestamp: new Date().toISOString() });
 });
 
-// Requirement 4: Endpoint 1 - GET /api/jobs
+// Step 3 & 7: Get Jobs
 app.get('/api/jobs', (req, res) => {
   res.json({ success: true, jobs: jobsStore });
 });
 
-// Requirement 4: Endpoint 2 - POST /api/interviews/submit
+// Step 6: Submit Completed AI Interview
 app.post('/api/interviews/submit', (req, res) => {
   const { sessionReport } = req.body;
   if (!sessionReport) {
@@ -113,14 +147,14 @@ app.post('/api/interviews/submit', (req, res) => {
   res.json({ success: true, message: "AI Interview session recorded", candidate: newCand });
 });
 
-// Requirement 4: Endpoint 3 - GET /api/evaluations/:jobId
+// Step 7: Fetch Evaluations & Candidate Metrics
 app.get('/api/evaluations/:jobId', (req, res) => {
   const { jobId } = req.params;
   const filtered = candidatesStore.filter(c => c.jobId === jobId || jobId === 'all');
   res.json({ success: true, candidates: filtered });
 });
 
-// Requirement 4: Endpoint 4 - POST /api/evaluations/shortlist
+// Step 7: Toggle Candidate Shortlist
 app.post('/api/evaluations/shortlist', (req, res) => {
   const { candidateId, shortlisted } = req.body;
   const cand = candidatesStore.find(c => c.id === candidateId);
@@ -131,14 +165,14 @@ app.post('/api/evaluations/shortlist', (req, res) => {
   res.status(404).json({ error: "Candidate not found" });
 });
 
-// Requirement 4: Endpoint 5 - POST /api/evaluations/send-emails
+// Step 7: Batch Send Confirmation Emails
 app.post('/api/evaluations/send-emails', (req, res) => {
   const { recipientIds, subject, body } = req.body;
   console.log(`[EMAIL DISPATCH] Sent email to ${recipientIds ? recipientIds.length : 0} candidate(s). Subject: "${subject}"`);
   res.json({ success: true, dispatchedCount: recipientIds ? recipientIds.length : 0 });
 });
 
-// Requirement 4: Endpoint 6 - GET /api/candidate/report/:candidateId
+// Step 8: Get Candidate Report
 app.get('/api/candidate/report/:candidateId', (req, res) => {
   const cand = candidatesStore.find(c => c.id === req.params.candidateId);
   if (cand) {
@@ -147,9 +181,15 @@ app.get('/api/candidate/report/:candidateId', (req, res) => {
   res.status(404).json({ error: "Report not found" });
 });
 
+// Mount modular jobs router if present
+try {
+  const jobsRoutes = require('./routes/jobs');
+  app.use('/api/v2/jobs', jobsRoutes);
+} catch (e) {}
+
 // Start Express Server with EADDRINUSE error handling
 const server = app.listen(PORT, () => {
-  console.log(`Backend Express server listening on http://localhost:${PORT}`);
+  console.log(`🚀 Express server listening on http://localhost:${PORT}`);
 });
 
 server.on('error', (err) => {
@@ -160,27 +200,6 @@ server.on('error', (err) => {
   }
 });
 
-// Prevent process exit on unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Routes
-app.use('/api/jobs', jobsRoutes);
-app.use('/api/applications', applicationsRoutes);
-app.use('/api/ai', aiRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Intellify Backend', timestamp: new Date().toISOString() });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Intellify Backend Server running on http://localhost:${PORT}`);
 });

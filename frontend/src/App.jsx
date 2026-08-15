@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { Layers, UserCheck, Cpu, Sparkles } from 'lucide-react';
-
 import Header from './components/Header';
 
 import JobCreationWizard from './components/Step3_JobCreation/JobCreationWizard';
@@ -16,97 +14,72 @@ import { INITIAL_JOBS, INITIAL_CANDIDATES } from './mockData';
 import './App.css';
 
 function App() {
-  // Current active step
+  // Current active step navigation (step3 | step4 | step5 | step6 | step7 | step8)
   const [activeTab, setActiveTab] = useState('step3');
 
-  // Company / Candidate persona
+  // Active persona (company | candidate)
   const [activeRole, setActiveRole] = useState('company');
 
-  // Step 3 → Step 4
+  // Step 3 → Step 4 state bridge
   const [currentShareId, setCurrentShareId] = useState('job_demo');
 
-  // Step 4 → Step 5
+  // Step 4 → Step 5 state bridge
   const [currentAppId, setCurrentAppId] = useState('app_demo123');
 
-  // Step 7 / Step 8 data
+  // Step 7 & Step 8 candidate datasets
   const [jobs, setJobs] = useState(INITIAL_JOBS);
   const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
 
-  // --------------------------------------------------
-  // STEP 3 → STEP 4
-  // --------------------------------------------------
-
+  // Step 3 -> Step 4 navigation callback
   const handleNavigateToApply = (shareId) => {
     if (shareId) {
       setCurrentShareId(shareId);
     }
-
+    setActiveRole('candidate');
     setActiveTab('step4');
   };
 
-  // --------------------------------------------------
-  // STEP 4 → STEP 5
-  // --------------------------------------------------
-
+  // Step 4 -> Step 5 navigation callback
   const handleNavigateToReport = (appId) => {
     if (appId) {
       setCurrentAppId(appId);
     }
-
+    setActiveRole('company');
     setActiveTab('step5');
   };
 
-  // --------------------------------------------------
-  // STEP 3 JOB CREATED
-  // --------------------------------------------------
-
+  // Step 3 job creation callback
   const handleJobCreated = (job) => {
     if (job) {
       setJobs((prev) => [job, ...prev]);
-
       if (job.shareId) {
         setCurrentShareId(job.shareId);
       }
     }
   };
 
-  // --------------------------------------------------
-  // STEP 6 → STEP 7
-  // --------------------------------------------------
-
+  // Step 6 interview completion callback
   const handleCompleteInterview = (sessionReport) => {
     const aspectScores = sessionReport?.aspectScores || {
-      technical: 0,
-      communication: 0,
-      fluency: 0,
-      bodyLanguage: 0,
-      professionalism: 0
+      technical: 85,
+      communication: 80,
+      fluency: 80,
+      bodyLanguage: 75,
+      professionalism: 90
     };
 
     const fakeResumeScore = sessionReport?.fakeResumeScore || 12;
 
     const newCandidate = {
       id: `cand-${Date.now().toString().slice(-6)}`,
-
       jobId: 'job-101',
-
       name: sessionReport?.candidateName || 'Aarav Sharma',
-
       email: 'aarav.sharma@example.com',
-
-      roleApplied:
-        sessionReport?.roleTitle ||
-        'Senior Full-Stack AI Engineer',
-
+      roleApplied: sessionReport?.roleTitle || 'Senior Full-Stack AI Engineer',
       appliedDate: new Date().toISOString().split('T')[0],
-
-      avatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       fakeResumeScore,
-
       isFakeResume: fakeResumeScore > 50,
-
       github: {
         username: 'aarav-codes',
         reposCount: 34,
@@ -115,73 +88,41 @@ function App() {
         topLanguages: ['TypeScript', 'Python'],
         commitPattern: 'Consistent (Daily active commits)'
       },
-
       leetcode: {
         solvedCount: 410,
         ranking: 'Top 4%',
         verified: true
       },
-
       linkedInVerified: true,
-
       aspectScores,
-
       proctoringLogs: sessionReport?.proctorLogs || [],
-
       interviewTranscript: sessionReport?.transcript || '',
-
-      aiObservations:
-        `Interactive Interview completed. Technical score ` +
-        `${aspectScores.technical}%. Proctoring logged ` +
-        `${sessionReport?.tabSwitches || 0} focus loss event(s).`,
-
+      aiObservations: `Interactive Interview completed. Technical score ${aspectScores.technical}%. Proctoring logged ${sessionReport?.tabSwitches || 0} focus loss event(s).`,
       improvementAreas: [
         'Maintain constant speech clarity during live code debug explanations.',
         'Refine atomic distributed mutex lock fallback handling.'
       ],
-
       shortlisted: aspectScores.technical > 80,
-
       status: 'Interview Completed'
     };
 
     setCandidates((prev) => [newCandidate, ...prev]);
-
-    // Go to company evaluation
     setActiveRole('company');
     setActiveTab('step7');
   };
 
-  // --------------------------------------------------
-  // STEP 7 CANDIDATE UPDATE
-  // --------------------------------------------------
-
+  // Step 7 candidate update handler
   const handleUpdateCandidate = (updatedCandidate) => {
     setCandidates((prev) =>
       prev.map((candidate) =>
-        candidate.id === updatedCandidate.id
-          ? updatedCandidate
-          : candidate
+        candidate.id === updatedCandidate.id ? updatedCandidate : candidate
       )
     );
   };
 
-  // --------------------------------------------------
-  // MAIN UI
-  // --------------------------------------------------
-
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
-      {/* ==========================================
-          STEP 3-8 UNIVERSAL HEADER
-      ========================================== */}
-
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Universal Header (Steps 3 - 8) */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -189,31 +130,14 @@ function App() {
         setActiveRole={setActiveRole}
       />
 
-      {/* ==========================================
-          MAIN CONTENT
-      ========================================== */}
-
-      <main
-        style={{
-          flex: 1,
-          paddingBottom: '40px'
-        }}
-      >
-
-        {/* ========================================
-            STEP 3 — JOB CREATION
-        ======================================== */}
-
+      {/* Main View Container */}
+      <main style={{ flex: 1, paddingBottom: '40px' }}>
         {activeTab === 'step3' && (
           <JobCreationWizard
             onJobCreated={handleJobCreated}
             onNavigateToApply={handleNavigateToApply}
           />
         )}
-
-        {/* ========================================
-            STEP 4 — CANDIDATE APPLY
-        ======================================== */}
 
         {activeTab === 'step4' && (
           <PublicJobApply
@@ -222,30 +146,21 @@ function App() {
           />
         )}
 
-        {/* ========================================
-            STEP 5 — AI VERIFICATION
-        ======================================== */}
-
         {activeTab === 'step5' && (
           <AIVerificationDashboard
             applicationId={currentAppId}
-            onBackToApply={() => setActiveTab('step4')}
+            onBackToApply={() => {
+              setActiveRole('candidate');
+              setActiveTab('step4');
+            }}
           />
         )}
-
-        {/* ========================================
-            STEP 6 — AI INTERVIEW
-        ======================================== */}
 
         {activeTab === 'step6' && (
           <AiInterview
             onCompleteInterview={handleCompleteInterview}
           />
         )}
-
-        {/* ========================================
-            STEP 7 — COMPANY EVALUATION
-        ======================================== */}
 
         {activeTab === 'step7' && (
           <CompanyEvaluationPanel
@@ -255,33 +170,23 @@ function App() {
           />
         )}
 
-        {/* ========================================
-            STEP 8 — CANDIDATE REPORT
-        ======================================== */}
-
         {activeTab === 'step8' && (
           <CandidateReportPortal
             candidates={candidates}
           />
         )}
-
       </main>
 
-      {/* ==========================================
-          FOOTER
-      ========================================== */}
-
-      <footer
-        style={{
-          textAlign: 'center',
-          padding: '16px',
-          borderTop: '1px solid var(--border-color)',
-          fontSize: '0.8rem',
-          color: 'var(--text-muted)',
-          background: 'rgba(9, 13, 22, 0.9)'
-        }}
-      >
-        VeriResume AI • AI Recruitment & Verification Platform
+      {/* Footer */}
+      <footer style={{
+        textAlign: 'center',
+        padding: '16px',
+        borderTop: '1px solid var(--border-color)',
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
+        background: 'rgba(9, 13, 22, 0.9)'
+      }}>
+        VeriResume AI • End-to-End AI Recruitment, Verification & Interview Platform (Steps 3 - 8)
       </footer>
     </div>
   );
