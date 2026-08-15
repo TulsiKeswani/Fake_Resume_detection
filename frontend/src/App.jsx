@@ -1,122 +1,86 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from 'react';
+import { Layers, UserCheck, Cpu, Sparkles, Building, CheckCircle2 } from 'lucide-react';
+import JobCreationWizard from './components/Step3_JobCreation/JobCreationWizard';
+import PublicJobApply from './components/Step4_CandidateApply/PublicJobApply';
+import AIVerificationDashboard from './components/Step5_AIVerification/AIVerificationDashboard';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeTab, setActiveTab] = useState('step3'); // 'step3' | 'step4' | 'step5'
+  const [currentShareId, setCurrentShareId] = useState('job_demo');
+  const [currentAppId, setCurrentAppId] = useState('app_demo123');
+
+  const handleNavigateToApply = (shareId) => {
+    if (shareId) setCurrentShareId(shareId);
+    setActiveTab('step4');
+  };
+
+  const handleNavigateToReport = (appId) => {
+    if (appId) setCurrentAppId(appId);
+    setActiveTab('step5');
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-layout">
+      {/* Top Application Navigation */}
+      <header className="app-header glass-panel">
+        <div className="logo-brand">
+          <Sparkles className="icon-gold" size={28} />
+          <div>
+            <h2>Intellify</h2>
+            <span className="badge badge-gold">Steps 3, 4 & 5 Suite</span>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
+        <nav className="nav-tabs">
+          <button
+            className={`nav-tab ${activeTab === 'step3' ? 'active' : ''}`}
+            onClick={() => setActiveTab('step3')}
+          >
+            <Layers size={18} /> Step 3: Job Creation Wizard
+          </button>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          <button
+            className={`nav-tab ${activeTab === 'step4' ? 'active' : ''}`}
+            onClick={() => setActiveTab('step4')}
+          >
+            <UserCheck size={18} /> Step 4: Candidate Job Apply
+          </button>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          <button
+            className={`nav-tab ${activeTab === 'step5' ? 'active' : ''}`}
+            onClick={() => setActiveTab('step5')}
+          >
+            <Cpu size={18} /> Step 5: AI Verification Work
+          </button>
+        </nav>
+      </header>
+
+      {/* Main Content Body */}
+      <main className="main-content">
+        {activeTab === 'step3' && (
+          <JobCreationWizard
+            onJobCreated={(job) => setCurrentShareId(job.shareId)}
+            onNavigateToApply={handleNavigateToApply}
+          />
+        )}
+
+        {activeTab === 'step4' && (
+          <PublicJobApply
+            shareId={currentShareId}
+            onNavigateToReport={handleNavigateToReport}
+          />
+        )}
+
+        {activeTab === 'step5' && (
+          <AIVerificationDashboard
+            applicationId={currentAppId}
+            onBackToApply={() => setActiveTab('step4')}
+          />
+        )}
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
