@@ -1,122 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/layout/Navbar';
+import AuthPage from './components/auth/AuthPage';
+import CompanyDashboard from './components/dashboard/CompanyDashboard';
+import CandidateDashboard from './components/dashboard/CandidateDashboard';
+import LandingPage from './components/landing/LandingPage';
+import './index.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const MainContent = () => {
+  const { user, role, loading } = useAuth();
+  const [currentView, setCurrentView] = useState('landing');
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '48px', height: '48px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+          <p style={{ color: 'var(--text-muted)' }}>Connecting to Intellify Cloud Engine...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Navbar currentView={currentView} setCurrentView={setCurrentView} />
 
-      <div className="ticks"></div>
+      <main style={{ flex: 1 }}>
+        {user ? (
+          role === 'company' ? (
+            <CompanyDashboard />
+          ) : (
+            <CandidateDashboard />
+          )
+        ) : (
+          <div>
+            {currentView === 'landing' ? (
+              <LandingPage onGetStarted={() => setCurrentView('auth')} />
+            ) : (
+              <div style={{ paddingTop: '20px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <button
+                    onClick={() => setCurrentView('landing')}
+                    style={{ background: 'transparent', border: 'none', color: '#818cf8', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
+                  >
+                    ← Back to Landing Page & Project Features
+                  </button>
+                </div>
+                <AuthPage onSuccess={() => setCurrentView('dashboard')} />
+              </div>
+            )}
+          </div>
+        )}
+      </main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <footer style={{ borderTop: '1px solid var(--border-color)', padding: '24px', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-subtle)', marginTop: '40px' }}>
+        Intellify ATS Cloud Engine © 2026 • Industry-Grade Encryption & Zero Local Storage Architecture
+      </footer>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+const App = () => {
+  return (
+    <AuthProvider>
+      <MainContent />
+    </AuthProvider>
+  );
+};
 
-export default App
+export default App;
