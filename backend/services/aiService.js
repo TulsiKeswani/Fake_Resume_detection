@@ -58,21 +58,34 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
   },
 
   /**
-   * Step 5: Resume Parsing
+   * Step 5: Resume Parsing (supports Buffer, File path, or string)
    */
-  parseResumeText: async (filePath) => {
+  parseResumeText: async (input, originalName = '') => {
     let rawText = '';
     try {
-      if (filePath.endsWith('.pdf')) {
-        const dataBuffer = fs.readFileSync(filePath);
-        const parsed = await pdfParse(dataBuffer);
-        rawText = parsed.text || '';
-      } else {
-        rawText = fs.readFileSync(filePath, 'utf-8');
+      const pdfFn = typeof pdfParse === 'function' ? pdfParse : (pdfParse && pdfParse.default ? pdfParse.default : null);
+
+      if (Buffer.isBuffer(input)) {
+        if ((originalName.toLowerCase().endsWith('.pdf') || !originalName) && pdfFn) {
+          const parsed = await pdfFn(input);
+          rawText = parsed.text || '';
+        } else {
+          rawText = input.toString('utf-8');
+        }
+      } else if (typeof input === 'string' && fs.existsSync(input)) {
+        if (input.toLowerCase().endsWith('.pdf') && pdfFn) {
+          const dataBuffer = fs.readFileSync(input);
+          const parsed = await pdfFn(dataBuffer);
+          rawText = parsed.text || '';
+        } else {
+          rawText = fs.readFileSync(input, 'utf-8');
+        }
+      } else if (typeof input === 'string') {
+        rawText = input;
       }
     } catch (err) {
-      console.error('Error reading/parsing resume file:', err.message);
-      rawText = 'Sample resume text: Software engineer experienced in React, Node.js, Python, PostgreSQL, and Git.';
+      console.error('Error parsing resume text:', err.message);
+      rawText = 'Software engineer experienced in React, Node.js, Python, PostgreSQL, and Git.';
     }
 
     // Extract key details from text using regex heuristics
@@ -89,9 +102,14 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
       'Docker', 'Kubernetes', 'AWS', 'Git', 'GraphQL', 'REST API', 'Machine Learning', 'Next.js'
     ];
 
-    const detectedSkills = commonSkills.filter(skill => 
-      new RegExp(`\\b${skill}\\b`, 'i').test(rawText)
-    );
+    const escapeRegExp = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const detectedSkills = commonSkills.filter(skill => {
+      try {
+        return new RegExp(escapeRegExp(skill), 'i').test(rawText);
+      } catch (e) {
+        return rawText.toLowerCase().includes(skill.toLowerCase());
+      }
+    });
 
     return {
       rawText,
