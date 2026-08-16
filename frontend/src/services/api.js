@@ -94,10 +94,14 @@ export const api = {
   // Step 5 APIs
   getVerificationReport: async (applicationId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/ai/verification/${applicationId}`);
-      return await res.json();
+      const res = await fetch(`${API_BASE_URL}/applications/${applicationId}`);
+      const data = await res.json();
+      if (!res.ok) {
+         return { success: false, message: data.error || 'Server error' };
+      }
+      return data;
     } catch (e) {
-      return { success: true, report: { score: 92, verified: true } };
+      return { success: false, message: e.message };
     }
   },
 
@@ -111,6 +115,45 @@ export const api = {
       return await res.json();
     } catch (e) {
       return { success: true, score: 90 };
+    }
+  },
+
+  verifyGithub: async (data) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/verification/github`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, message: e.message || 'API error' };
+    }
+  },
+
+  getNextInterviewQuestion: async (applicationId, interviewState) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/interviews/next-question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId, interviewState })
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  },
+
+  evaluateInterviewAnswer: async (applicationId, questionObj, answer) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/interviews/evaluate-answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId, questionObj, answer })
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, message: e.message };
     }
   }
 };

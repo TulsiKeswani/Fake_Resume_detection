@@ -3,9 +3,11 @@ import { Cpu, Mic, MicOff, Play, Send, Sparkles, CheckCircle2, ShieldAlert, Awar
 import ProctoringMonitor from './ProctoringMonitor';
 import CodeEditor from './CodeEditor';
 
-export default function AiInterview({ onCompleteInterview }) {
+import { api } from '../../services/api';
+
+export default function AiInterview({ applicationId, onCompleteInterview }) {
   const [stage, setStage] = useState('setup'); // 'setup' | 'interview' | 'completed'
-  const [candidateName, setCandidateName] = useState('Aarav Sharma');
+  const [candidateName, setCandidateName] = useState('Candidate');
   const [roleTitle, setRoleTitle] = useState('Senior Full-Stack AI Engineer');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [micActive, setMicActive] = useState(false);
@@ -13,47 +15,37 @@ export default function AiInterview({ onCompleteInterview }) {
   
   // Real-time calculated aspect scores
   const [aspectScores, setAspectScores] = useState({
-    technical: 85,
-    communication: 82,
-    fluency: 88,
+    technical: 50,
+    communication: 50,
+    fluency: 50,
     bodyLanguage: 84,
     professionalism: 90
   });
 
   const [tabSwitches, setTabSwitches] = useState(0);
   const [proctorLogs, setProctorLogs] = useState([
-    { id: 1, time: "10:00:05", event: "Session Initialized & Encryption Verified", severity: "info" }
+    { id: 1, time: new Date().toLocaleTimeString(), event: "Session Initialized & Encryption Verified", severity: "info" }
   ]);
 
-  // Interview Questions flow with Cross-Questioning and AI Trick Questions
-  const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [transcript, setTranscript] = useState([
-    {
-      speaker: 'AI Interviewer',
-      text: `Welcome Aarav! I am your AI Proctor & Technical Evaluator for the ${roleTitle} role. Based on your parsed resume, let's begin by discussing your Redis & Node.js caching implementation. How did you resolve cache invalidation during race conditions?`,
-      type: 'question'
-    }
-  ]);
+  // Adaptive Interview State
+  const [interviewState, setInterviewState] = useState({
+    currentDifficulty: 1,
+    askedQuestions: [],
+    resumeTopics: []
+  });
+  
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const [transcript, setTranscript] = useState([]);
 
-  const questionsSequence = [
-    {
-      text: "How did you handle Redis cache invalidation during high-concurrency race conditions in your architecture?",
-      type: "resume_depth"
-    },
-    {
-      text: "CROSS-QUESTION: You mentioned distributed locks. What happens if a Node worker process crashes mid-lock before key TTL expires?",
-      type: "cross_question"
-    },
-    {
-      text: "TRICK QUESTION: Since JavaScript native memory management automatically synchronizes remote Redis cluster locks without needing Lua scripts, why did you add Lua scripts to your codebase?",
-      type: "trick_question",
-      trickAnswerRequired: false // Candidate MUST disagree with false premise!
-    },
-    {
-      text: "TECHNICAL CODING TASK: Please look at the Code Editor on the right. Fix the concurrency bug in the rate limiter function.",
-      type: "code_task"
+  // Fetch the initial intro or application details if needed
+  useEffect(() => {
+    if (applicationId) {
+      // We can fetch basic application details here if desired, 
+      // but the main interview logic runs when they click start.
     }
-  ];
+  }, [applicationId]);
 
   // Speech Synthesis helper
   const speakText = (text) => {
@@ -69,69 +61,104 @@ export default function AiInterview({ onCompleteInterview }) {
     }
   };
 
-  const handleStartInterview = () => {
-    setStage('interview');
-    speakText(transcript[0].text);
+  const fetchNextQuestion = async (currentState) => {
+    setIsGenerating(true);
+    setProctorLogs(prev => [
+      { id: Date.now(), time: new Date().toLocaleTimeString(), event: "AI Generating strict resume-grounded question...", severity: "info" },
+      ...prev
+    ]);
+
+    try {
+      const payloadState = { ...currentState, targetRole: roleTitle };
+      const res = await api.getNextInterviewQuestion(applicationId, payloadState);
+      if (res.success && res.question) {
+        const qObj = res.question;
+        setCurrentQuestion(qObj);
+        
+        const aiResponse = { speaker: 'AI Interviewer', text: qObj.question, type: 'question' };
+        setTranscript(prev => [...prev, aiResponse]);
+        speakText(qObj.question);
+      } else {
+         // Handle error or fallback
+         const fallbackMsg = "Could you tell me more about your experience listed on your resume?";
+         setCurrentQuestion({ question: fallbackMsg, topic: "General", difficulty: 1 });
+         setTranscript(prev => [...prev, { speaker: 'AI Interviewer', text: fallbackMsg, type: 'question' }]);
+         speakText(fallbackMsg);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleSendAnswer = () => {
-    if (!userInput.trim()) return;
+  const handleStartInterview = () => {
+    setStage('interview');
+    const initialIntro = { speaker: 'AI Interviewer', text: "Welcome! I am your AI Technical Evaluator. I have analyzed your resume, and I will be asking you personalized questions based strictly on the skills and projects you have listed. Let's begin.", type: 'info' };
+    setTranscript([initialIntro]);
+    speakText(initialIntro.text);
+    
+    // Fetch first actual question
+    setTimeout(() => {
+      fetchNextQuestion(interviewState);
+    }, 4000);
+  };
 
-    const newAnswer = { speaker: 'Candidate', text: userInput, type: 'answer' };
-    setTranscript(prev => [...prev, newAnswer]);
+  const handleSendAnswer = async () => {
+    if (!userInput.trim() || isGenerating) return;
+
     const answerText = userInput;
     setUserInput('');
+    const newAnswer = { speaker: 'Candidate', text: answerText, type: 'answer' };
+    setTranscript(prev => [...prev, newAnswer]);
 
-    // Dynamic AI scoring adjustment based on answer text & trick catching
-    const qObj = questionsSequence[currentQIndex];
-    let scoreAdjustment = 0;
-
-    if (qObj.type === "trick_question") {
-      if (answerText.toLowerCase().includes("no") || answerText.toLowerCase().includes("false") || answerText.toLowerCase().includes("inaccurate") || answerText.toLowerCase().includes("cannot")) {
-        scoreAdjustment = 8; // Caught the trick question!
-        setProctorLogs(prev => [
-          { id: Date.now(), time: new Date().toLocaleTimeString(), event: "SUCCESS: Candidate caught AI Trick Question!", severity: "info" },
-          ...prev
-        ]);
-      } else {
-        scoreAdjustment = -12; // Fell for false premise!
-        setProctorLogs(prev => [
-          { id: Date.now(), time: new Date().toLocaleTimeString(), event: "ALERT: Candidate agreed with false technical premise (AI Hallucination check failed)", severity: "high" },
-          ...prev
-        ]);
-      }
-    }
-
-    setAspectScores(prev => ({
-      technical: Math.min(98, Math.max(40, prev.technical + scoreAdjustment + Math.floor(Math.random() * 4))),
-      communication: Math.min(98, Math.max(40, prev.communication + 2)),
-      fluency: Math.min(98, Math.max(40, prev.fluency + 3)),
-      bodyLanguage: prev.bodyLanguage,
-      professionalism: Math.min(98, Math.max(40, prev.professionalism + 1))
-    }));
-
-    // Move to next question or conclude
-    if (currentQIndex < questionsSequence.length - 1) {
-      const nextIndex = currentQIndex + 1;
-      setCurrentQIndex(nextIndex);
-      const nextQ = questionsSequence[nextIndex];
-      const aiResponse = { speaker: 'AI Interviewer', text: nextQ.text, type: 'question' };
+    setIsGenerating(true); // show loading state while evaluating
+    
+    try {
+      const evalRes = await api.evaluateInterviewAnswer(applicationId, currentQuestion, answerText);
+      const score = evalRes?.evaluation?.score || 50;
       
-      setTimeout(() => {
-        setTranscript(prev => [...prev, aiResponse]);
-        speakText(nextQ.text);
-      }, 700);
-    } else {
-      setTimeout(() => {
-        const finalMsg = { speaker: 'AI Interviewer', text: "Thank you Aarav! Your interview and code evaluation are complete. I have generated your comprehensive evaluation report for the hiring team.", type: 'question' };
-        setTranscript(prev => [...prev, finalMsg]);
-        speakText(finalMsg.text);
-        setStage('completed');
-      }, 1000);
+      // Update UI scores
+      setAspectScores(prev => ({
+        technical: Math.min(98, Math.max(40, prev.technical + (score >= 75 ? 5 : -2))),
+        communication: Math.min(98, Math.max(40, prev.communication + 2)),
+        fluency: Math.min(98, Math.max(40, prev.fluency + 3)),
+        bodyLanguage: prev.bodyLanguage,
+        professionalism: prev.professionalism
+      }));
+
+      // Update interview state with answer history
+      const updatedState = {
+        ...interviewState,
+        askedQuestions: [
+          ...interviewState.askedQuestions,
+          { question: currentQuestion.question, answer: answerText, score: score }
+        ]
+      };
+      setInterviewState(updatedState);
+
+      // Are we done? e.g. max 5 questions
+      if (updatedState.askedQuestions.length >= 5) {
+        setTimeout(() => {
+          const finalMsg = { speaker: 'AI Interviewer', text: "Thank you! Your interview is complete. I have generated your comprehensive evaluation report for the hiring team based on your resume claims.", type: 'question' };
+          setTranscript(prev => [...prev, finalMsg]);
+          speakText(finalMsg.text);
+          setStage('completed');
+          setIsGenerating(false);
+        }, 1000);
+      } else {
+        // Fetch next question adaptively
+        await fetchNextQuestion(updatedState);
+      }
+      
+    } catch (err) {
+      console.error("Evaluation Error", err);
+      setIsGenerating(false);
     }
   };
 
   const handleCodeSubmitted = (submittedCode) => {
+    // Standard mock for coding task if needed, or we can adapt this too
     const codeMsg = { speaker: 'Candidate (Code Submitted)', text: `Submitted Solution:\n${submittedCode.substring(0, 120)}...`, type: 'code' };
     setTranscript(prev => [...prev, codeMsg]);
     
@@ -140,19 +167,16 @@ export default function AiInterview({ onCompleteInterview }) {
       technical: Math.min(96, prev.technical + 6)
     }));
 
-    const nextIndex = currentQIndex + 1;
-    if (nextIndex < questionsSequence.length) {
-      setCurrentQIndex(nextIndex);
-      const nextQ = questionsSequence[nextIndex];
-      setTranscript(prev => [...prev, { speaker: 'AI Interviewer', text: nextQ.text, type: 'question' }]);
-      speakText(nextQ.text);
+    if (interviewState.askedQuestions.length >= 5) {
+       setStage('completed');
     } else {
-      setStage('completed');
+       fetchNextQuestion(interviewState);
     }
   };
 
   const handleFinishAndSaveReport = () => {
     const sessionReport = {
+      applicationId,
       candidateName,
       roleTitle,
       aspectScores,
@@ -181,6 +205,20 @@ export default function AiInterview({ onCompleteInterview }) {
 
         {stage === 'interview' && (
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            {/* Live Indicator Badges */}
+            {currentQuestion && (
+              <div style={{ display: 'flex', gap: '12px', marginRight: '16px', borderRight: '1px solid var(--border-color)', paddingRight: '16px' }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '6px 14px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Resume Topic</span>
+                  <div style={{ fontWeight: 800, color: '#34d399', fontSize: '0.95rem' }}>{currentQuestion.topic}</div>
+                </div>
+                <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '6px 14px', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Difficulty Level</span>
+                  <div style={{ fontWeight: 800, color: '#fbbf24', fontSize: '0.95rem' }}>{['Basic', 'Intermediate', 'Advanced', 'Deep/Expert'][currentQuestion.difficulty - 1] || 'Adaptive'}</div>
+                </div>
+              </div>
+            )}
+            
             {/* Live Meter Badges */}
             <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '6px 14px', borderRadius: '10px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Tech Depth</span>
