@@ -33,7 +33,6 @@ function MainContent() {
   const [activeApplication, setActiveApplication] = useState(null);
 
   // Step 4 → Step 5 state bridge
-  const [currentAppId, setCurrentAppId] = useState('app_demo123');
 
   // Step 7 & Step 8 candidate datasets
   const [jobs, setJobs] = useState(INITIAL_JOBS || []);
