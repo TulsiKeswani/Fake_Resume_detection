@@ -102,6 +102,10 @@ try {
   app.use('/api/ai', require('./routes/ai'));
 } catch (e) {}
 
+try {
+  app.use('/api/verification', require('./routes/githubVerificationRoutes'));
+} catch (e) {}
+
 // Health check endpoints
 app.get('/', (req, res) => {
   res.json({ status: "ok", message: "Backend is running", system: "VeriResume & Intellify Engine" });
@@ -116,36 +120,9 @@ app.get('/api/jobs', (req, res) => {
   res.json({ success: true, jobs: jobsStore });
 });
 
-// Step 6: Submit Completed AI Interview
-app.post('/api/interviews/submit', (req, res) => {
-  const { sessionReport } = req.body;
-  if (!sessionReport) {
-    return res.status(400).json({ error: "Session report payload required" });
-  }
-
-  const newCand = {
-    id: `cand-${Date.now()}`,
-    jobId: "job-101",
-    name: sessionReport.candidateName || "Candidate",
-    email: sessionReport.email || "candidate@example.com",
-    roleApplied: sessionReport.roleTitle || "Senior Full-Stack AI Engineer",
-    fakeResumeScore: sessionReport.fakeResumeScore || 12,
-    isFakeResume: (sessionReport.fakeResumeScore || 12) > 50,
-    aspectScores: sessionReport.aspectScores || { technical: 80, communication: 80, fluency: 80, bodyLanguage: 80, professionalism: 80 },
-    shortlisted: (sessionReport.aspectScores?.technical || 0) > 80,
-    github: { username: "candidate-dev", reposCount: 10, totalCommits: 300, astComplexityScore: 80, commitPattern: "Active" },
-    leetcode: { solvedCount: 150, ranking: "Top 15%", verified: true },
-    linkedInVerified: true,
-    proctoringLogs: sessionReport.proctorLogs || [],
-    interviewTranscript: sessionReport.transcript || [],
-    aiObservations: "AI interview submission recorded.",
-    improvementAreas: ["Keep practicing system design."],
-    status: "Interview Completed"
-  };
-
-  candidatesStore.unshift(newCand);
-  res.json({ success: true, message: "AI Interview session recorded", candidate: newCand });
-});
+try {
+  app.use('/api/interviews', require('./routes/interviews'));
+} catch (e) {}
 
 // Step 7: Fetch Evaluations & Candidate Metrics
 app.get('/api/evaluations/:jobId', (req, res) => {

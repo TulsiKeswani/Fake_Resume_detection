@@ -33,7 +33,7 @@ export default function Header({ activeTab, setActiveTab, activeRole, setActiveR
         </div>
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }} className="gradient-text">
-            VeriResume AI
+            Unmask ATS
           </h1>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Sparkles size={12} color="#06b6d4" /> Next-Gen AI Verification & Hiring Assessment Suite

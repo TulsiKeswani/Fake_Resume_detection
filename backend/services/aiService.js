@@ -72,7 +72,11 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
       }
     } catch (err) {
       console.error('Error reading/parsing resume file:', err.message);
-      rawText = 'Sample resume text: Software engineer experienced in React, Node.js, Python, PostgreSQL, and Git.';
+      return { rawText: '', error: 'Unable to parse resume' };
+    }
+
+    if (!rawText || rawText.trim().length === 0) {
+      return { rawText: '', error: 'Unable to parse resume' };
     }
 
     // Extract key details from text using regex heuristics
@@ -86,12 +90,36 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
     const commonSkills = [
       'JavaScript', 'TypeScript', 'React', 'Node.js', 'Express', 'Python', 'Java', 'C++',
       'Go', 'Rust', 'HTML', 'CSS', 'Tailwind', 'SQL', 'PostgreSQL', 'MongoDB', 'Redis',
-      'Docker', 'Kubernetes', 'AWS', 'Git', 'GraphQL', 'REST API', 'Machine Learning', 'Next.js'
+      'Docker', 'Kubernetes', 'AWS', 'Git', 'GraphQL', 'REST API', 'Machine Learning', 'Next.js',
+      'Flask', 'OpenCV'
     ];
 
-    const detectedSkills = commonSkills.filter(skill => 
-      new RegExp(`\\b${skill}\\b`, 'i').test(rawText)
-    );
+    const detectedSkills = commonSkills.filter(skill => {
+      const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`\\b${escapedSkill}\\b`, 'i').test(rawText);
+    });
+
+    // Basic heuristic to extract projects
+    const extractedProjects = [];
+    const lowerText = rawText.toLowerCase();
+    
+    // Very simple dynamic project extraction logic (just looking for capitalization patterns after "Projects" word)
+    const projectIndex = lowerText.indexOf('projects');
+    if (projectIndex !== -1 && projectIndex < lowerText.length - 20) {
+      const projectSection = rawText.substring(projectIndex, projectIndex + 500);
+      const lines = projectSection.split('\n').filter(l => l.trim().length > 0);
+      // Assuming first few lines after 'Projects' header might be project names
+      if (lines.length > 1) {
+         extractedProjects.push({
+           name: lines[1].trim(),
+           description: lines[2] ? lines[2].trim() : 'Project description found in resume',
+           technologies: detectedSkills.slice(0, 3)
+         });
+      }
+    }
+
+    const expMatch = rawText.match(/(\d+)\+?\s*years/i);
+    const estimatedExperienceYears = expMatch ? `${expMatch[1]} YEARS` : 'Unable to determine';
 
     return {
       rawText,
@@ -100,8 +128,9 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
       extractedGithub: githubMatch ? `https://github.com/${githubMatch[1]}` : null,
       extractedLinkedin: linkedinMatch ? `https://www.linkedin.com/in/${linkedinMatch[1]}` : null,
       extractedLeetcode: leetcodeMatch ? `https://leetcode.com/${leetcodeMatch[1]}` : null,
-      detectedSkills: detectedSkills.length > 0 ? detectedSkills : ['JavaScript', 'React', 'Node.js', 'Git'],
-      estimatedExperienceYears: rawText.match(/(\d+)\+?\s*years/i) ? parseInt(rawText.match(/(\d+)\+?\s*years/i)[1]) : 2
+      detectedSkills: detectedSkills,
+      extractedProjects: extractedProjects,
+      estimatedExperienceYears
     };
   },
 
@@ -110,14 +139,15 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
    */
   detectAiGeneratedResume: (resumeText) => {
     if (!resumeText || resumeText.length < 50) {
-      return { aiConfidenceScore: 15, breakdown: { perplexity: 'High', buzzwords: 'Low', uniformity: 'Normal' } };
+      return { aiConfidenceScore: null, unavailable: true, breakdown: {} };
     }
 
     const aiPhrases = [
       'testament to my', 'spearheaded seamlessly', 'leverage my expertise',
       'in summary', 'dynamic professional', 'proven track record of success',
       'fostering collaborative', 'synergistic approach', 'cutting-edge solution',
-      'driving impactful results', 'orchestrated comprehensive'
+      'driving impactful results', 'orchestrated comprehensive', 'delve into',
+      'tapestry of', 'meticulously crafted'
     ];
 
     let phraseMatches = 0;
@@ -131,16 +161,31 @@ We are looking for a talented and motivated **${role}** (${experienceLevel}) to 
     const lenVariance = sentences.reduce((acc, s) => acc + Math.abs(s.length - avgLen), 0) / (sentences.length || 1);
     
     // Lower variance in sentence length is a sign of LLM generation
-    const isUniform = lenVariance < 15;
+    const isUniform = lenVariance > 0 && lenVariance < 20;
 
-    let score = Math.min(95, Math.max(10, Math.floor((phraseMatches * 18) + (isUniform ? 25 : 5) + Math.random() * 10)));
+    // Deterministic scoring (No Math.random)
+    let score = Math.floor((phraseMatches * 15) + (isUniform ? 30 : 5));
+    score = Math.min(95, Math.max(5, score));
+
+    let confidence = 'Low';
+    if (score > 70) confidence = 'High';
+    else if (score > 40) confidence = 'Moderate';
+
+    let signals = [];
+    if (isUniform) signals.push('⚠ High sentence uniformity');
+    else signals.push('✓ Natural sentence variation');
+    
+    if (phraseMatches > 2) signals.push('⚠ High usage of generic AI phrasing');
+    else signals.push('✓ Low phrase repetition');
 
     return {
-      aiConfidenceScore: score, // 0 - 100% chance it is AI generated
+      aiConfidenceScore: score,
+      confidence,
+      signals,
       breakdown: {
         aiPhrasesFound: phraseMatches,
-        sentenceUniformity: isUniform ? 'High (LLM Pattern)' : 'Natural Human Variance',
-        perplexityLevel: score > 60 ? 'Low Perplexity (Predictable AI Structure)' : 'High Perplexity (Human Style)'
+        sentenceUniformity: isUniform ? 'High Uniformity' : 'Natural Variance',
+        perplexityLevel: 'Perplexity analysis unavailable without external AI model API'
       }
     };
   },
