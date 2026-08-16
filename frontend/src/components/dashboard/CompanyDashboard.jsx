@@ -19,10 +19,10 @@ import {
   Layers
 } from 'lucide-react';
 
-const CompanyDashboard = () => {
+const CompanyDashboard = ({ jobs: propsJobs = [], onNavigateToCreateJob, onNavigateToEvaluation }) => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterTerm, setFilterTerm] = useState('');
 
@@ -114,9 +114,16 @@ const CompanyDashboard = () => {
             Real-time candidate AI evaluations, fake resume heatmaps, and job management
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          <Plus size={18} /> Create New Job Post
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {onNavigateToEvaluation && (
+            <button className="btn-secondary" onClick={onNavigateToEvaluation}>
+              <BarChart3 size={18} /> Step 7: Evaluate Candidates
+            </button>
+          )}
+          <button className="btn-primary" onClick={onNavigateToCreateJob || (() => setShowCreateModal(true))}>
+            <Plus size={18} /> Step 3: Create New Job
+          </button>
+        </div>
       </div>
 
       {/* Metrics Cards */}

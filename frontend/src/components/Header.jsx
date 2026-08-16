@@ -41,8 +41,26 @@ export default function Header({ activeTab, setActiveTab, activeRole, setActiveR
         </div>
       </div>
 
-      {/* Main Navigation Tabs: Step 3 → Step 8 */}
+      {/* Main Navigation Tabs: Step 1 → Step 8 */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+        <button
+          className={activeTab === 'step1' ? 'btn-primary' : 'btn-secondary'}
+          onClick={() => setActiveTab('step1')}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+        >
+          <User size={14} />
+          Step 1: Auth
+        </button>
+
+        <button
+          className={activeTab === 'step2' ? 'btn-primary' : 'btn-secondary'}
+          onClick={() => setActiveTab('step2')}
+          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+        >
+          <Users size={14} />
+          Step 2: Dashboard
+        </button>
+
         <button
           className={activeTab === 'step3' ? 'btn-primary' : 'btn-secondary'}
           onClick={() => {

@@ -30,22 +30,19 @@ const LinkedinIcon = ({ size = 18, color = 'currentColor' }) => (
   </svg>
 );
 
-const CandidateDashboard = () => {
+const CandidateDashboard = ({ jobs: propsJobs = [], candidates: propsCandidates = [], onNavigateToApply, onNavigateToInterview, onNavigateToReport }) => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchCandidateData = async () => {
     try {
-      setLoading(true);
       const res = await api.get('/candidate/dashboard');
       if (res.success) {
         setData(res);
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -53,17 +50,9 @@ const CandidateDashboard = () => {
     fetchCandidateData();
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{ maxWidth: '1280px', margin: '40px auto', padding: '0 24px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Loading Candidate AI Dashboard...</p>
-      </div>
-    );
-  }
-
   const profile = data?.profile || user;
   const appliedJobs = data?.appliedJobs || [];
-  const availableJobs = data?.availableJobs || [];
+  const availableJobs = propsJobs.length > 0 ? propsJobs : (data?.availableJobs || []);
 
   return (
     <div style={{ maxWidth: '1280px', margin: '32px auto', padding: '0 24px' }}>
@@ -242,8 +231,8 @@ const CandidateDashboard = () => {
                   </p>
                 </div>
 
-                <button className="btn-primary" style={{ width: '100%', fontSize: '0.85rem' }} onClick={() => alert('Application submitted successfully to ' + job.companyName)}>
-                  Apply Now via Cloud ATS
+                <button className="btn-primary" style={{ width: '100%', fontSize: '0.85rem' }} onClick={() => onNavigateToApply && onNavigateToApply(job.shareId || job.id)}>
+                  Step 4: Apply Now via Cloud ATS
                 </button>
               </div>
             ))}

@@ -13,7 +13,7 @@ export default function PublishAndShare({ createdJob, onNavigateToApply }) {
   const [copied, setCopied] = useState(false);
   const [isPublished, setIsPublished] = useState(createdJob?.isPublishedPortal ?? true);
 
-  const fullShareUrl = `${window.location.origin}/apply/${createdJob?.shareId || 'job_demo'}`;
+  const fullShareUrl = `${window.location.origin}/apply/${createdJob?.shareId || createdJob?.id || ''}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(fullShareUrl);

@@ -10,7 +10,7 @@ const GithubIcon = ({ size = 20 }) => (
   </svg>
 );
 
-export default function AIVerificationDashboard({ applicationId, onBackToApply }) {
+export default function AIVerificationDashboard({ applicationId, onBackToApply, onProceedToInterview }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -118,8 +118,21 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply }
     );
   }
 
-  if (error) {
+  if (!loading && (!data || error)) {
     return (
+      <div className="glass-panel" style={{ padding: '40px', maxWidth: '600px', margin: '40px auto', textAlign: 'center' }}>
+        <AlertTriangle size={40} color="#f59e0b" style={{ marginBottom: '16px' }} />
+        <h3 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '8px' }}>
+          {!applicationId ? 'No Candidate Application Selected' : 'Verification Report Pending'}
+        </h3>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+          {error || 'Please submit a candidate application in Step 4 to view the real-time AI verification report.'}
+        </p>
+        {onBackToApply && (
+          <button className="btn btn-primary" onClick={onBackToApply}>
+            Go to Step 4: Apply Job
+          </button>
+        )}
       <div className="glass-panel alert alert-error">
         <p>{error}</p>
         <button className="btn btn-secondary" onClick={triggerFetchReport}>Retry</button>
@@ -128,7 +141,7 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply }
   }
 
   const { application, verification } = data;
-  const { parsedResume, aiDetection, devProfiles, overallScore } = verification;
+  const { parsedResume, aiDetection, devProfiles, overallScore } = verification || {};
 
   return (
     <div className="ai-dashboard-container">
@@ -250,6 +263,8 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply }
 
       </div>
 
+      <div className="dashboard-footer-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+        <button className="btn btn-secondary" onClick={fetchReport}>
       <div style={{ maxWidth: '800px', margin: '24px auto 0 auto' }}>
         <GithubVerificationPanel 
           parsedResume={parsedResume} 
@@ -263,8 +278,13 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply }
           <RefreshCw size={16} /> Re-run AI Analysis
         </button>
         {onBackToApply && (
-          <button className="btn btn-primary" onClick={onBackToApply}>
+          <button className="btn btn-secondary" onClick={onBackToApply}>
             Submit Another Application
+          </button>
+        )}
+        {onProceedToInterview && (
+          <button className="btn btn-primary" onClick={onProceedToInterview} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff' }}>
+            <Cpu size={16} /> Proceed to Step 6: AI Interview
           </button>
         )}
       </div>

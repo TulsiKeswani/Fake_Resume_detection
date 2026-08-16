@@ -81,7 +81,7 @@ let candidatesStore = [
   }
 ];
 
-// Mount Routes safely if modules exist
+// Mount Routes
 try {
   app.use('/api/auth', require('./routes/authRoutes'));
 } catch (e) {}
@@ -95,6 +95,10 @@ try {
 } catch (e) {}
 
 try {
+  app.use('/api/jobs', require('./routes/jobs'));
+} catch (e) {}
+
+try {
   app.use('/api/applications', require('./routes/applications'));
 } catch (e) {}
 
@@ -102,6 +106,19 @@ try {
   app.use('/api/ai', require('./routes/ai'));
 } catch (e) {}
 
+// Pre-seed demo job in jobService if empty
+const jobService = require('./services/jobService');
+if (jobService.getAllJobs().length === 0) {
+  jobService.createJob({
+    title: 'Senior Full-Stack AI Engineer',
+    department: 'AI & Engineering',
+    location: 'Remote / Bangalore',
+    jobType: 'Full-time',
+    experienceLevel: 'Senior-Level',
+    description: 'We are seeking a Senior Full-Stack AI Engineer to design scalable web applications.',
+    aspectWeights: { technical: 35, communication: 25, fluency: 15, bodyLanguage: 15, professionalism: 10 }
+  });
+}
 try {
   app.use('/api/verification', require('./routes/githubVerificationRoutes'));
 } catch (e) {}

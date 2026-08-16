@@ -5,7 +5,7 @@ import DynamicFormRenderer from './DynamicFormRenderer';
 import ApplicationSuccess from './ApplicationSuccess';
 import { api } from '../../services/api';
 
-export default function PublicJobApply({ shareId = 'job_demo', onNavigateToReport }) {
+export default function PublicJobApply({ shareId = null, onNavigateToReport }) {
   const [job, setJob] = useState(null);
   const [loadingJob, setLoadingJob] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -30,29 +30,26 @@ export default function PublicJobApply({ shareId = 'job_demo', onNavigateToRepor
   }, [shareId]);
 
   const fetchJobDetails = async () => {
+    if (!shareId) {
+      setJob(null);
+      setServerError('No job link selected.');
+      setLoadingJob(false);
+      return;
+    }
+
     setLoadingJob(true);
+    setServerError('');
     try {
       const res = await api.getPublicJob(shareId);
       if (res.success && res.job) {
         setJob(res.job);
       } else {
-        // Fallback demo job
-        setJob({
-          id: 'job_demo',
-          shareId: 'job_demo',
-          title: 'Senior Full Stack Engineer',
-          department: 'Engineering & Product',
-          location: 'Remote / Hybrid',
-          jobType: 'Full-time',
-          description: `We are looking for an experienced Senior Full Stack Engineer to lead web application development. Key skills include React, Node.js, TypeScript, REST APIs, and Git.`,
-          customQuestions: [
-            { id: 'q_notice', questionText: 'Notice Period (in days)', type: 'text', isRequired: true },
-            { id: 'q_exp', questionText: 'Years of React/Node.js Experience', type: 'dropdown', options: ['0-1 Years', '2-4 Years', '5+ Years'], isRequired: true }
-          ]
-        });
+        setJob(null);
+        setServerError(res.error || 'Job not found or link has expired.');
       }
     } catch (err) {
-      console.warn('Backend fetch failed, loading fallback job:', err);
+      setJob(null);
+      setServerError('Job not found or link has expired.');
     } finally {
       setLoadingJob(false);
     }
