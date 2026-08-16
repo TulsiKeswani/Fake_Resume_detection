@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Cpu, ShieldCheck, Code, FileText, AlertTriangle, CheckCircle2, RefreshCw, Star, GitCommit, Sparkles, User, ExternalLink } from 'lucide-react';
 import { api } from '../../services/api';
+import GithubVerificationPanel from './GithubVerificationPanel';
 
 const GithubIcon = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -15,59 +16,96 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply, 
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId = null;
+
+    const fetchReport = async (retryCount = 0) => {
+      setLoading(true);
+      setError('');
+      try {
+        if (applicationId) {
+          const res = await api.getVerificationReport(applicationId);
+          if (res.success && res.verification) {
+            if (res.verification.error) {
+              if (isMounted) {
+                setError(res.verification.error);
+                setLoading(false);
+              }
+              return;
+            }
+            if (isMounted) {
+              setData({ application: res.application, verification: res.verification });
+              setLoading(false);
+            }
+            return;
+          } else if (res.success && !res.verification && retryCount < 10) {
+            // Still processing in the background, poll again in 3 seconds
+            if (isMounted) {
+              setLoading(true);
+              timeoutId = setTimeout(() => fetchReport(retryCount + 1), 3000);
+            }
+            return;
+          } else {
+            if (isMounted) {
+              setError(res.message || 'AI analysis is taking longer than expected or is unavailable. Please try again later.');
+              setLoading(false);
+            }
+            return;
+          }
+        } else {
+          if (isMounted) {
+            setError('No application ID provided.');
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError('Failed to fetch AI verification data.');
+          setLoading(false);
+        }
+      }
+    };
+
     fetchReport();
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [applicationId]);
 
-  const fetchReport = async () => {
-    if (!applicationId) {
-      setLoading(false);
-      setError('Please complete a job application first.');
-      setData(null);
-      return;
-    }
+  const handleManualRetry = () => {
+    setLoading(true);
+    setError('');
+    // Trigger the useEffect again by just calling the same logic or let's extract it if needed.
+    // For simplicity, we can just force a state update if we really wanted to, 
+    // but the simplest is just defining a local function to trigger the fetch again.
+    // However, since it's now wrapped in useEffect, let's just do a window.location.reload() or define fetchReport outside.
+  };
 
+  // We need to keep a manual fetch method for the "Retry" button at the bottom of the dashboard.
+  const triggerFetchReport = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await api.getVerificationReport(applicationId);
-      if (res.success) {
-        if (res.verification) {
+      if (applicationId) {
+        const res = await api.getVerificationReport(applicationId);
+        if (res.success && res.verification) {
+          if (res.verification.error) {
+            setError(res.verification.error);
+            setLoading(false);
+            return;
+          }
           setData({ application: res.application, verification: res.verification });
-        } else if (res.status === 'processing') {
-          // Provide real application processing state
-          setData({
-            application: res.application || { id: applicationId, candidateName: 'Candidate' },
-            verification: {
-              parsedResume: {
-                detectedSkills: ['JavaScript', 'React', 'Node.js', 'Git'],
-                estimatedExperienceYears: 2
-              },
-              aiDetection: {
-                aiConfidenceScore: 15,
-                breakdown: {
-                  aiPhrasesFound: 0,
-                  sentenceUniformity: 'Human Verified',
-                  perplexityLevel: 'Natural Variance'
-                }
-              },
-              devProfiles: {
-                githubData: { valid: true, repositoriesCount: 12, codeComplexityScore: 88 },
-                leetcodeData: { valid: true, totalSolved: 140 }
-              },
-              overallScore: 88
-            }
-          });
+          setLoading(false);
+          return;
+        } else {
+          setError(res.message || 'AI analysis is still processing. Please try again in a few moments.');
+          setLoading(false);
+          return;
         }
-      } else {
-        setData(null);
-        setError(res.error || 'Application record or AI verification report not found.');
       }
-    } catch (err) {
-      setData(null);
-      setError('Application record or AI verification report not found.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) {}
   };
 
   if (loading) {
@@ -95,6 +133,9 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply, 
             Go to Step 4: Apply Job
           </button>
         )}
+      <div className="glass-panel alert alert-error">
+        <p>{error}</p>
+        <button className="btn btn-secondary" onClick={triggerFetchReport}>Retry</button>
       </div>
     );
   }
@@ -113,29 +154,10 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply, 
             Applied via {application.resumeOriginalName} • ID: <code>{application.id}</code>
           </p>
         </div>
-
-        <div className="score-ring-wrap">
-          <div className="score-ring">
-            <svg viewBox="0 0 100 100">
-              <circle className="circle-bg" cx="50" cy="50" r="42" />
-              <circle
-                className="circle-progress"
-                cx="50"
-                cy="50"
-                r="42"
-                style={{ strokeDasharray: `${(overallScore * 2.64)}, 264` }}
-              />
-            </svg>
-            <div className="score-display">
-              <span className="number">{overallScore}</span>
-              <span className="label">Verification Score</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Grid Layout of AI Verification Panels */}
-      <div className="verification-grid">
+      <div className="verification-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto' }}>
 
         {/* Panel 1: AI Generated Resume Detection Score */}
         <div className="verif-card glass-panel">
@@ -144,162 +166,115 @@ export default function AIVerificationDashboard({ applicationId, onBackToApply, 
             <h3>AI-Generated Resume Detection</h3>
           </div>
           
-          <div className="gauge-container">
-            <div className="gauge-bar-track">
-              <div
-                className="gauge-bar-fill"
-                style={{
-                  width: `${aiDetection.aiConfidenceScore}%`,
-                  backgroundColor: aiDetection.aiConfidenceScore > 60 ? '#ef4444' : '#10b981'
-                }}
-              />
-            </div>
-            <div className="gauge-labels">
-              <span>Human Written (0%)</span>
-              <strong className={aiDetection.aiConfidenceScore > 60 ? 'text-danger' : 'text-success'}>
-                {aiDetection.aiConfidenceScore}% AI Likelihood
-              </strong>
-              <span>AI Generated (100%)</span>
-            </div>
-          </div>
+          {aiDetection.unavailable ? (
+             <div className="alert alert-warning" style={{ marginTop: '16px' }}>
+                <AlertTriangle size={16} /> AI detection unavailable for this resume text.
+             </div>
+          ) : (
+            <>
+              <div className="gauge-container" style={{ marginTop: '16px' }}>
+                <div className="gauge-bar-track">
+                  <div
+                    className="gauge-bar-fill"
+                    style={{
+                      width: `${aiDetection.aiConfidenceScore}%`,
+                      backgroundColor: aiDetection.aiConfidenceScore > 60 ? '#ef4444' : '#10b981'
+                    }}
+                  />
+                </div>
+                <div className="gauge-labels">
+                  <span>Human (0%)</span>
+                  <strong className={aiDetection.aiConfidenceScore > 60 ? 'text-danger' : 'text-success'}>
+                    {aiDetection.aiConfidenceScore}% AI Likelihood
+                  </strong>
+                  <span>AI (100%)</span>
+                </div>
+              </div>
 
-          <div className="breakdown-list">
-            <div className="breakdown-item">
-              <span>Sentence Uniformity:</span>
-              <strong>{aiDetection.breakdown?.sentenceUniformity}</strong>
-            </div>
-            <div className="breakdown-item">
-              <span>Perplexity Style:</span>
-              <strong>{aiDetection.breakdown?.perplexityLevel}</strong>
-            </div>
-            <div className="breakdown-item">
-              <span>AI Buzzwords Found:</span>
-              <strong>{aiDetection.breakdown?.aiPhrasesFound}</strong>
-            </div>
-          </div>
+              <div style={{ marginTop: '16px' }}>
+                 <strong>Confidence: {aiDetection.confidence}</strong>
+                 <p className="hint-text" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                    *AI-generated likelihood is an analytical estimate, not definitive proof of authorship.
+                 </p>
+              </div>
+
+              <div className="breakdown-list" style={{ marginTop: '16px' }}>
+                <div style={{ marginBottom: '8px' }}><strong>Signals Detected:</strong></div>
+                {aiDetection.signals?.map((sig, i) => (
+                  <div key={i} className="breakdown-item" style={{ borderBottom: 'none', padding: '4px 0', color: sig.includes('⚠') ? '#ef4444' : '#10b981' }}>
+                    {sig}
+                  </div>
+                ))}
+                
+                <div className="breakdown-item" style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
+                  <span>{aiDetection.breakdown?.perplexityLevel}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Panel 2: Resume Parser Insights */}
+        {/* Panel 2: Parsed Resume Entities */}
         <div className="verif-card glass-panel">
           <div className="card-title-row">
             <FileText className="icon-blue" size={20} />
-            <h3>Parsed Resume Entities</h3>
+            <h3>Parsed Resume Overview</h3>
           </div>
 
           <div className="entity-row">
             <span>Estimated Experience:</span>
-            <div className="badge badge-info">{parsedResume.estimatedExperienceYears}+ Years</div>
-          </div>
-
-          <div className="entity-row">
-            <span>Extracted Email:</span>
-            <code>{parsedResume.extractedEmail || application.candidateEmail}</code>
-          </div>
-
-          <div className="skills-tags-section">
-            <label>Detected Core Skills:</label>
-            <div className="skills-chips">
-              {parsedResume.detectedSkills?.map((skill, idx) => (
-                <span key={idx} className="skill-chip">{skill}</span>
-              ))}
+            <div className={`badge ${parsedResume.estimatedExperienceYears === 'Unable to determine' ? 'badge-warning' : 'badge-info'}`}>
+               {parsedResume.estimatedExperienceYears}
             </div>
           </div>
-        </div>
 
-        {/* Panel 3: GitHub Footprint & Code Complexity */}
-        <div className="verif-card glass-panel">
-          <div className="card-title-row">
-            <GithubIcon size={20} />
-            <h3>GitHub Footprint & Code Complexity</h3>
+          <div className="skills-tags-section" style={{ marginTop: '16px' }}>
+            <label>Detected Core Skills (To Verify):</label>
+            {parsedResume.detectedSkills?.length > 0 ? (
+              <div className="skills-chips">
+                {parsedResume.detectedSkills.map((skill, idx) => (
+                  <span key={idx} className="skill-chip">{skill}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="hint-text">No core skills explicitly found in text.</p>
+            )}
           </div>
 
-          {devProfiles.githubData?.valid ? (
-            <div className="dev-stats-body">
-              <div className="dev-metrics-grid">
-                <div className="metric-box">
-                  <span className="metric-val">{devProfiles.githubData.reposCount}</span>
-                  <span className="metric-lbl">Public Repos</span>
-                </div>
-                <div className="metric-box">
-                  <span className="metric-val"><GitCommit size={14} /> {devProfiles.githubData.totalCommits}</span>
-                  <span className="metric-lbl">Est. Commits</span>
-                </div>
-                <div className="metric-box">
-                  <span className="metric-val"><Star size={14} /> {devProfiles.githubData.starsCount}</span>
-                  <span className="metric-lbl">Stars</span>
-                </div>
-              </div>
-
-              <div className="complexity-bar-box">
-                <div className="label-row">
-                  <span>Abstract Syntax Tree & Code Complexity:</span>
-                  <strong>{devProfiles.githubData.complexityScore}/100</strong>
-                </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${devProfiles.githubData.complexityScore}%` }}></div>
-                </div>
-              </div>
-
-              <div className="languages-row">
-                <span>Top Languages:</span>
-                <div className="chip-list">
-                  {devProfiles.githubData.primaryLanguages?.map((lang, i) => (
-                    <span key={i} className="chip-sm">{lang}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="alert alert-warning">
-              <AlertTriangle size={16} /> No GitHub link submitted or user not found.
-            </div>
-          )}
-        </div>
-
-        {/* Panel 4: LeetCode & Official Work Links */}
-        <div className="verif-card glass-panel">
-          <div className="card-title-row">
-            <Code className="icon-gold" size={20} />
-            <h3>LeetCode & Work Profile Verification</h3>
+          <div className="skills-tags-section" style={{ marginTop: '16px' }}>
+            <label>Extracted Projects:</label>
+            {parsedResume.extractedProjects?.length > 0 ? (
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', color: 'var(--text-color)', marginTop: '8px' }}>
+                 {parsedResume.extractedProjects.map((proj, idx) => (
+                   <li key={idx} style={{ marginBottom: '8px' }}>
+                     <strong>{proj.name}</strong>
+                     <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{proj.description}</div>
+                     {proj.technologies && proj.technologies.length > 0 && (
+                        <div style={{ fontSize: '0.8rem', color: '#818cf8' }}>Tech: {proj.technologies.join(', ')}</div>
+                     )}
+                   </li>
+                 ))}
+               </ul>
+            ) : (
+              <p className="hint-text">No recognizable projects found.</p>
+            )}
           </div>
-
-          {devProfiles.leetcodeData?.valid ? (
-            <div className="leetcode-stats-box">
-              <div className="lc-top-row">
-                <div>
-                  <h4>{devProfiles.leetcodeData.solvedCount} Problems Solved</h4>
-                  <span className="hint-text">LeetCode Rating: {devProfiles.leetcodeData.rating}</span>
-                </div>
-                <span className="badge badge-success"><CheckCircle2 size={14} /> Verified</span>
-              </div>
-
-              <div className="difficulty-pills">
-                <span className="pill easy">Easy: {devProfiles.leetcodeData.easy}</span>
-                <span className="pill medium">Medium: {devProfiles.leetcodeData.medium}</span>
-                <span className="pill hard">Hard: {devProfiles.leetcodeData.hard}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="hint-text">LeetCode profile not provided.</p>
-          )}
-
-          {devProfiles.officialLinkData?.valid && (
-            <div className="portfolio-verif-box">
-              <div className="portfolio-header">
-                <ExternalLink size={16} /> Official Work / Project Link:
-              </div>
-              <a href={devProfiles.officialLinkData.url} target="_blank" rel="noreferrer" className="link-text">
-                {devProfiles.officialLinkData.url}
-              </a>
-              <span className="badge badge-success"><CheckCircle2 size={14} /> Link Validated</span>
-            </div>
-          )}
         </div>
 
       </div>
 
       <div className="dashboard-footer-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
         <button className="btn btn-secondary" onClick={fetchReport}>
+      <div style={{ maxWidth: '800px', margin: '24px auto 0 auto' }}>
+        <GithubVerificationPanel 
+          parsedResume={parsedResume} 
+          candidateName={application.candidateName}
+          applicationGithubUrl={application.githubUrl} 
+        />
+      </div>
+
+      <div className="dashboard-footer-actions" style={{ justifyContent: 'center', marginTop: '32px' }}>
+        <button className="btn btn-secondary" onClick={triggerFetchReport}>
           <RefreshCw size={16} /> Re-run AI Analysis
         </button>
         {onBackToApply && (

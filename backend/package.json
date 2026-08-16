@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "VeriResume AI & Intellify Cloud Backend Server",
+  "description": "Unmask ATS & Intellify Cloud Backend Server",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

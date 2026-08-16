@@ -1,18 +1,18 @@
-# 🚀 Intellify - AI-Powered Autonomous ATS & Verification Cloud Platform
+# 🚀 Unmask ATS - AI-Powered Autonomous ATS & Verification Cloud Platform
 
-![Intellify Banner](https://img.shields.io/badge/Intellify-ATS%20Cloud%20Engine-6366f1?style=for-the-badge&logo=rocket)
+![Unmask ATS Banner](https://img.shields.io/badge/Unmask-ATS%20Cloud%20Engine-6366f1?style=for-the-badge&logo=rocket)
 ![Node.js](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express-339933?style=for-the-badge&logo=nodedotjs)
 ![React](https://img.shields.io/badge/Frontend-React%2019%20%7C%20Vite-61DAFB?style=for-the-badge&logo=react)
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb)
 ![Security](https://img.shields.io/badge/Security-Zero%20Local%20Storage-10b981?style=for-the-badge&logo=shield)
 
-**Intellify** is an industry-grade, cloud-native Applicant Tracking System (ATS) and autonomous AI interview engineering platform. Designed with **zero local file storage reliance**, Intellify streams resumes and logos directly to Cloud Storage, detects AI-generated fake resumes, verifies developer skills using **Abstract Syntax Tree (AST)** GitHub analysis, and conducts proctored AI interview simulations.
+**Unmask ATS** is an industry-grade, cloud-native Applicant Tracking System (ATS) and autonomous AI interview engineering platform. Designed with **zero local file storage reliance**, Unmask ATS streams resumes and logos directly to Cloud Storage, detects AI-generated fake resumes, verifies developer skills using **Abstract Syntax Tree (AST)** GitHub analysis, and conducts proctored AI interview simulations.
 
 ---
 
 ## 🌟 Architectural Features & The 8 Recruitment Steps
 
-Intellify automates the end-to-end recruitment pipeline across **8 core steps**:
+Unmask ATS automates the end-to-end recruitment pipeline across **8 core steps**:
 
 ### 1. Step 1: Registration & Cloud Authentication
 - **Company Profile**: Onboarding form with cloud logo stream upload.

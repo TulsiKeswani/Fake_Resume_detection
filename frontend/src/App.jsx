@@ -32,9 +32,12 @@ function MainContent() {
   const [currentAppId, setCurrentAppId] = useState(null);
   const [activeApplication, setActiveApplication] = useState(null);
 
-  // Core Datasets
-  const [jobs, setJobs] = useState(INITIAL_JOBS);
-  const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
+  // Step 4 → Step 5 state bridge
+  const [currentAppId, setCurrentAppId] = useState('app_demo123');
+
+  // Step 7 & Step 8 candidate datasets
+  const [jobs, setJobs] = useState(INITIAL_JOBS || []);
+  const [candidates, setCandidates] = useState(INITIAL_CANDIDATES || []);
 
   // Step 3 -> Step 4 navigation callback
   const handleNavigateToApply = (shareId) => {
@@ -234,6 +237,7 @@ function MainContent() {
 
         {activeTab === 'step6' && (
           <AiInterview
+            applicationId={currentAppId}
             onCompleteInterview={handleCompleteInterview}
             initialCandidateName={activeApplication?.candidateName}
             initialRoleTitle={jobs.find(j => j.id === activeApplication?.jobId)?.title || jobs[0]?.title}
@@ -266,7 +270,7 @@ function MainContent() {
         color: 'var(--text-muted)',
         background: 'rgba(9, 13, 22, 0.9)'
       }}>
-        VeriResume AI • End-to-End AI Recruitment, Verification & Interview Platform (Steps 1 - 8)
+        Unmask ATS • End-to-End AI Recruitment, Verification & Interview Platform (Steps 3 - 8)
       </footer>
     </div>
   );

@@ -144,6 +144,14 @@ async function runAiVerificationPipeline(applicationId, filePath, devLinks) {
     console.log(`[AI Pipeline] Verification completed for application: ${applicationId}`);
   } catch (err) {
     console.error(`[AI Pipeline Error] Application ${applicationId}:`, err);
+    // Save a failed verification state so the frontend doesn't hang forever
+    jobService.saveVerification(applicationId, {
+      error: 'AI Verification Pipeline failed to process this application.',
+      parsedResume: { error: 'Failed to parse', estimatedExperienceYears: 'Unable to determine' },
+      aiDetection: { unavailable: true, aiConfidenceScore: null, breakdown: {} },
+      devProfiles: { githubData: {}, leetcodeData: {}, officialLinkData: {} },
+      overallScore: 0
+    });
   }
 }
 
